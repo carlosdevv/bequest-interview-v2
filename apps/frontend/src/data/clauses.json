@@ -1,0 +1,27 @@
+[
+  {
+    "id": "revocation",
+    "title": "Revocation",
+    "content": "I hereby revoke all previous Wills and codicils made by me."
+  },
+  {
+    "id": "appointment-executors",
+    "title": "Appointment of Executors and Trustees",
+    "content": "I appoint my Child Executor 1 and my Daughter Wendy Richman, to be the Executors of my Will and Trustees of my estate.\n\nProvided that if Executor 1 and Wendy Richman shall die before me, or is at any time unable or unwilling to act or continue to act as Executor of my Will and Trustee of my estate before all trusts in my Will have been fully performed, then I appoint, to be the Executor of my Will and Trustee of my estate.\n\nThe expression \"my Trustee\" or \"my Trustees\" used throughout this my Will shall include, where the context permits, the Executor and Trustee and Executors and Trustees for the time being of this my Will whether original, additional or substituted."
+  },
+  {
+    "id": "digital-assets",
+    "title": "Digital Assets (The Canada Trust Company)",
+    "content": "I give all my digital assets, including but not limited to, my electronic communications, digital photos, videos, music, games, software licenses, computer files, websites, domain names, social media accounts, file sharing accounts, financial accounts, online accounts and digital currencies to my trustee to administer according to the terms of my will."
+  },
+  {
+    "id": "compensation",
+    "title": "Compensation (BMO Trust Company)",
+    "content": "My Trustee shall be entitled to receive fair and reasonable compensation for the services rendered by my Trustee in the administration of my estate and trusts, such compensation to be based upon the usual fees and charges of my Trustee from time to time in effect for such services."
+  },
+  {
+    "id": "distribution-residue",
+    "title": "Distribution of Residue",
+    "content": "I give, devise and bequeath all my property of every nature and kind and wheresoever situate, including any property over which I may have a general power of appointment, to my Trustee upon the following trusts: to divide or transfer the residue of my estate as follows:"
+  }
+]
