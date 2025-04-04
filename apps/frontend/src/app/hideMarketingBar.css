@@ -1,0 +1,42 @@
+/* CSS para ocultar a barra de marketing da Syncfusion */
+div[style*="background: #eef2ff"] {
+  display: none !important;
+}
+
+/* Ocultar outras mensagens promocionais da Syncfusion */
+div[style*="z-index: 99999"] {
+  display: none !important;
+}
+
+/* Garantir que quaisquer mensagens com essas características também sejam ocultadas */
+div[style*="font-size: 14px"][style*="background"] {
+  display: none !important;
+}
+
+/* Ocultar especificamente a div azul com o texto "Claim your FREE account" */
+div[style*="background: #eef2ff"],
+div[style*="background:#eef2ff"] {
+  display: none !important;
+}
+
+/* Abordagem para esconder divs com certas características */
+div[style*="text-align: left"][style*="border: 1px solid"] {
+  display: none !important;
+}
+
+/* Ocultar a div azul informativa no topo */
+div[style*="background-color: rgba(0, 0, 0, 0.5)"] {
+  display: none !important;
+}
+
+/* Esconder elementos específicos da Syncfusion pelo ID ou classes */
+.e-de-watermark-banner,
+.e-de-ctn-info-banner {
+  display: none !important;
+}
+
+/* Esconder com maior especificidade qualquer elemento azul */
+div[style*="background-color: rgb(238, 242, 255)"],
+div[style*="background-color:#eef2ff"] {
+  display: none !important;
+}

@@ -14,6 +14,7 @@ import '@syncfusion/ej2-react-documenteditor/styles/material.css';
 import '@syncfusion/ej2-splitbuttons/styles/material.css';
 import { useEffect, useRef, useState } from 'react';
 import { useClauses, type Clause } from '../context/ClausesContext';
+import { DocumentApiService } from '../services/DocumentApiService';
 
 DocumentEditorContainerComponent.Inject(Toolbar);
 registerLicense(
@@ -24,10 +25,75 @@ export const DocumentEditor = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const editorRef = useRef<DocumentEditorContainerComponent>(null);
   const [actionsOpen, setActionsOpen] = useState(false);
+  const [currentDocumentId, setCurrentDocumentId] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const { selectedClauses, setSelectedClauses, addClauseToDocument } =
     useClauses();
   const [isDocumentLoaded, setIsDocumentLoaded] = useState(false);
   const prevSelectedClausesRef = useRef<Clause[]>([]);
+
+  // Timer para auto-save
+  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Função para salvar o documento no backend
+  const saveDocument = async () => {
+    if (!editorRef.current) return;
+
+    const editor = editorRef.current.documentEditor;
+
+    try {
+      const blob = await editor.saveAsBlob('Docx');
+
+      // Convertendo blob para string (Base64)
+      const reader = new FileReader();
+      reader.readAsDataURL(blob);
+
+      reader.onloadend = async () => {
+        const base64data = reader.result as string;
+        // Remover o prefixo de dados data:application/...
+        const content = base64data.split(',')[1];
+
+        // Preparar dados para envio
+        const documentData = {
+          name: 'Current Document',
+          content: content,
+          selectedClauses: selectedClauses.map(clause => ({
+            id: clause.id,
+            uniqueId: clause.uniqueId,
+            title: clause.title,
+            content: clause.content
+          })),
+          documentBlocks: []
+        };
+
+        console.log('Saving document to backend...');
+
+        if (currentDocumentId) {
+          // Atualizar documento existente
+          await DocumentApiService.updateDocument(currentDocumentId, documentData);
+          console.log('Document updated successfully');
+        } else {
+          // Criar novo documento
+          const newDoc = await DocumentApiService.createDocument(documentData);
+          setCurrentDocumentId(newDoc.id);
+          console.log('New document created with ID:', newDoc.id);
+        }
+      };
+    } catch (error) {
+      console.error('Error saving document:', error);
+    }
+  };
+
+  // Auto-save com debounce (500ms)
+  const handleDocumentChange = async () => {
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+    }
+
+    saveTimeoutRef.current = setTimeout(() => {
+      saveDocument();
+    }, 500);
+  };
 
   const handleOpen = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const fileInput = event.target.files?.[0];
@@ -39,6 +105,11 @@ export const DocumentEditor = () => {
 
     editor.open(fileInput);
     setActionsOpen(false);
+
+    // Salvar o documento após abrir o arquivo
+    setTimeout(() => {
+      saveDocument();
+    }, 500);
   };
 
   const handleDownload = async () => {
@@ -53,17 +124,81 @@ export const DocumentEditor = () => {
     setActionsOpen(false);
   };
 
+  // Carregar documento do backend ao iniciar
   useEffect(() => {
-    const editor = editorRef.current!.documentEditor;
+    const loadDocument = async () => {
+      try {
+        setIsLoading(true);
+        const document = await DocumentApiService.getCurrentDocument();
 
-    editor.contentChange = async () => {
+        if (document && document.id) {
+          setCurrentDocumentId(document.id);
+
+          if (document.content && editorRef.current) {
+            const editor = editorRef.current.documentEditor;
+
+            // Converter string Base64 para Blob
+            const byteCharacters = atob(document.content);
+            const byteArrays = [];
+            for (let i = 0; i < byteCharacters.length; i++) {
+              byteArrays.push(byteCharacters.charCodeAt(i));
+            }
+            const byteArray = new Uint8Array(byteArrays);
+            const blob = new Blob([byteArray], {type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'});
+
+            // Abrir o documento no editor
+            const file = new File([blob], 'document.docx', {
+              type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+            });
+
+            editor.open(file);
+            setIsDocumentLoaded(true);
+
+            // Atualizar cláusulas selecionadas
+            if (document.selectedClauses && document.selectedClauses.length > 0) {
+              const clauses = document.selectedClauses.map(c => ({
+                id: c.id,
+                uniqueId: c.uniqueId,
+                title: c.title,
+                content: c.content
+              }));
+              setSelectedClauses(clauses);
+            }
+
+            console.log('Document loaded from backend successfully');
+          }
+        } else {
+          // Se não houver documento, criar um em branco
+          if (editorRef.current) {
+            const editor = editorRef.current.documentEditor;
+            editor.openBlank();
+            setIsDocumentLoaded(true);
+          }
+        }
+      } catch (error) {
+        console.error('Error loading document:', error);
+        // Em caso de erro, abrir documento em branco
+        if (editorRef.current) {
+          const editor = editorRef.current.documentEditor;
+          editor.openBlank();
+          setIsDocumentLoaded(true);
+        }
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadDocument();
+  }, []);
+
+  useEffect(() => {
+    if (!editorRef.current) return;
+
+    const editor = editorRef.current.documentEditor;
+
+    editor.contentChange = () => {
       console.log('Document Content changed');
-      const blob = await editor.saveAsBlob('Docx');
-      const file = new File([blob], `Document.docx`, {
-        type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-      });
-
-      console.log(file);
+      handleDocumentChange();
     };
   }, []);
 
@@ -73,8 +208,6 @@ export const DocumentEditor = () => {
     const editor = editorRef.current.documentEditor;
 
     if (!isDocumentLoaded) {
-      editor.openBlank();
-      setIsDocumentLoaded(true);
       return;
     }
 
@@ -99,10 +232,15 @@ export const DocumentEditor = () => {
           topicCounter++;
         });
       });
+
+      // Salvar o documento após atualizar as cláusulas
+      setTimeout(() => {
+        saveDocument();
+      }, 500);
     }
 
     prevSelectedClausesRef.current = JSON.parse(JSON.stringify(selectedClauses));
-  }, [selectedClauses]);
+  }, [selectedClauses, isDocumentLoaded]);
 
   return (
     <div className="h-screen flex flex-col">
@@ -124,6 +262,7 @@ export const DocumentEditor = () => {
           </svg>
         </button>
         <h1 className="text-3xl font-light">Document Editor</h1>
+        {isLoading && <span className="ml-4 text-sm">Carregando...</span>}
         <div className="ml-auto">
           <div className="relative">
             <button
@@ -199,7 +338,6 @@ export const DocumentEditor = () => {
             'Separator',
             'Find',
           ]}
-          contentChange={(e) => {}}
         />
       </div>
     </div>
